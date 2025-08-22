@@ -1,52 +1,65 @@
+# 代理服务监听端口，客户端需通过该端口连接代理
 PORT = 3050
 
-# name -> secret (32 hex chars)
+# 用户配置：键为用户名，值为用户密钥（需满足32个十六进制字符格式）
+# 十六进制字符范围：0-9、a-f（大小写不敏感，此处为小写示例）
 USERS = {
-    "tg":  "00000000000000000000000000000001",
-    # "tg2": "0123456789abcdef0123456789abcdef",
+    "tg":  "00000000000000000000000000000001",  # 用户名"tg"对应的密钥（示例密钥，实际使用需替换为自定义32位十六进制密钥）
+    # "tg2": "0123456789abcdef0123456789abcdef",  # 注释的备用用户配置，取消注释后可新增"tg2"用户
 }
 
+# 代理工作模式配置：键为模式名称，值为是否启用（True=启用，False=禁用）
 MODES = {
-    # Classic mode, easy to detect
+    # 经典模式：协议特征明显，容易被网络检测工具识别
     "classic": False,
 
-    # Makes the proxy harder to detect
-    # Can be incompatible with very old clients
-    "secure": False,
+    # 安全模式：对协议特征进行优化，降低被检测的概率
+    # 注意：可能与版本过旧的Telegram客户端不兼容（如多年未更新的客户端）
+    "secure": True,
 
-    # Makes the proxy even more hard to detect
-    # Can be incompatible with old clients
+    # TLS模式：基于TLS协议封装代理流量，伪装性最强，最难被检测
+    # 注意：可能与部分旧版本客户端不兼容（通常为3年前以上的旧版本）
     "tls": True
 }
 
-# The domain for TLS mode, bad clients are proxied there
-# Use random existing domain, proxy checks it on start
-# TLS_DOMAIN = "www.google.com"
+# TLS模式专用配置：不良客户端（如不符合协议规范的客户端）的跳转域名
+# 建议使用公开且稳定的现有域名（如示例中的谷歌域名），代理启动时会自动验证该域名的可用性
+# 若启用TLS模式，需取消下方注释并配置有效的域名
+TLS_DOMAIN = "www.google.com"
 
-# Tag for advertising, obtainable from @MTProxybot
-# AD_TAG = "3c09c680b76ee91a4c25ad51f742267d"
+# 广告标签：用于关联Telegram官方代理的推广标识，可通过@MTProxybot机器人获取
+# 配置后代理产生的流量可计入对应推广账号，若无需推广可保持注释状态
+AD_TAG = "3c09c680b76ee91a4c25ad51f742267d"
 
-# Buffer size optimization for 8GB RAM server
-# Adaptive buffer configuration: (low_buffer, user_threshold, high_buffer)
-# When concurrent users < threshold, use high buffer; otherwise use low buffer
-TO_CLT_BUFSIZE = (8388608, 50, 20971520)  # (8MB, 50 users, 20MB)
-TO_TG_BUFSIZE = (8388608, 50, 20971520)   # (8MB, 50 users, 20MB)
+# 缓冲区大小优化：针对8GB内存服务器的默认配置（单位：字节）
+# 自适应缓冲区规则：(低缓冲区大小, 用户数量阈值, 高缓冲区大小)
+# 当并发用户数 < 阈值时，使用高缓冲区（提升单用户传输效率）；当并发用户数 ≥ 阈值时，使用低缓冲区（避免内存占用过高）
+TO_CLT_BUFSIZE = (8388608, 50, 20971520)  # 代理到客户端（CLT）的缓冲区：(8MB, 50个并发用户阈值, 20MB)
+TO_TG_BUFSIZE = (8388608, 50, 20971520)   # 代理到Telegram（TG）服务器的缓冲区：(8MB, 50个并发用户阈值, 20MB)
 
-# User TCP connection limits - set reasonable limits to prevent abuse
-# Format: {"username": max_connections}
+# 用户TCP连接限制：防止单个用户过度占用连接资源（如恶意攻击、滥用）
+# 格式：{"用户名": 最大并发连接数}，超出限制的连接会被拒绝
 USER_MAX_TCP_CONNS = {
-    "tg": 500,  # Allow up to 100 concurrent connections per user
+    "tg": 500,  # 允许用户名"tg"最多同时建立500个TCP连接（根据服务器性能可调整）
 }
 
-# Performance optimization settings
-CLIENT_KEEPALIVE = 20*60        # Keep connections alive for 20 minutes
-CLIENT_HANDSHAKE_TIMEOUT = 30   # 30 seconds handshake timeout
-CLIENT_ACK_TIMEOUT = 10*60      # 10 minutes ACK timeout
-TG_CONNECT_TIMEOUT = 15         # 15 seconds Telegram connection timeout
+# 性能优化相关设置（保障连接稳定性与资源利用率）
+CLIENT_KEEPALIVE = 20*60        # 客户端连接保活时间：20分钟（超过该时间无数据传输则自动断开连接）
+CLIENT_HANDSHAKE_TIMEOUT = 30   # 客户端握手超时时间：30秒（客户端发起连接后，若30秒内未完成握手则断开）
+CLIENT_ACK_TIMEOUT = 10*60      # 客户端ACK响应超时时间：10分钟（等待客户端确认消息的最长时间）
+TG_CONNECT_TIMEOUT = 15         # 代理到Telegram服务器的连接超时时间：15秒（连接Telegram服务器超时则重试或拒绝客户端请求）
 
-# Performance monitoring and logging settings
-ENABLE_STATS = True             # Enable connection statistics
-STATS_PRINT_PERIOD = 600        # Print stats every 10 minutes
-LOG_LEVEL = "INFO"              # Logging level: DEBUG, INFO, WARNING, ERROR
-MAX_CONCURRENT_USERS = 200      # Maximum concurrent users (for monitoring)
-MEMORY_USAGE_WARNING = 80       # Warning threshold for memory usage (percentage)
+# 性能监控和日志配置
+ENABLE_STATS = True             # 是否启用连接统计功能（启用后会记录用户连接数、流量等数据）
+STATS_PRINT_PERIOD = 600        # 统计信息打印周期：600秒（即10分钟，定期在日志中输出服务运行状态）
+LOG_LEVEL = "DEBUG"              # 日志级别：可选DEBUG（详细调试信息）、INFO（常规运行信息）、WARNING（警告信息）、ERROR（错误信息）
+MAX_CONCURRENT_USERS = 200      # 最大并发用户数（用于监控告警，非强制限制，超过时日志会提示高负载）
+MEMORY_USAGE_WARNING = 80       # 内存使用警告阈值：80%（当代理进程占用内存超过服务器总内存的80%时，日志会输出警告）
+
+# 高级反检测和安全配置
+FAST_MODE = False               # 禁用Telegram到客户端流量重加密（False=启用重加密，提高安全性但略降性能）
+REPLAY_CHECK_LEN = 65536        # 重放攻击保护：记录握手随机数长度（65536=启用保护，0=禁用）
+IGNORE_TIME_SKEW = True         # 接受时钟偏差的客户端（True=接受，降低重放攻击保护但提高兼容性）
+MASK = True                     # 启用不良客户端伪装转发（True=启用，将无效连接转发到伪装主机）
+MASK_HOST = "www.google.com"    # 伪装主机：不良客户端转发目标（建议使用真实存在的HTTPS网站）
+MASK_PORT = 443                 # 伪装端口：转发到目标主机的端口（443=HTTPS标准端口）
