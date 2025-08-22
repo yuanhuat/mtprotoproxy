@@ -130,8 +130,8 @@ def init_config():
         if not re.fullmatch("[0-9a-fA-F]{32}", secret):
             fixed_secret = re.sub(r"[^0-9a-fA-F]", "", secret).zfill(32)[:32]
 
-            print_err("Bad secret for user %s, should be 32 hex chars, got %s. " % (user, secret))
-            print_err("Changing it to %s" % fixed_secret)
+            print_err("用户 %s 的密钥格式错误，应为32位十六进制字符，当前为 %s" % (user, secret))
+            print_err("已自动修正为 %s" % fixed_secret)
 
             conf_dict["USERS"][user] = fixed_secret
 
@@ -170,12 +170,12 @@ def init_config():
             modes["secure"] = False
 
     if not modes["classic"] and not modes["secure"] and not modes["tls"]:
-        print_err("No known modes enabled, enabling tls-only mode")
+        print_err("未启用任何已知模式，启用仅TLS模式")
         modes["tls"] = True
 
     if legacy_warning:
-        print_err("Legacy options SECURE_ONLY or TLS_ONLY detected")
-        print_err("Please use MODES in your config instead:")
+        print_err("检测到旧版配置选项 SECURE_ONLY 或 TLS_ONLY")
+        print_err("请在配置中使用 MODES 替代:")
         print_err("MODES = {")
         print_err('    "classic": %s,' % modes["classic"])
         print_err('    "secure": %s,' % modes["secure"])
@@ -357,7 +357,7 @@ def try_use_pycrypto_or_pycryptodome_module():
 def use_slow_bundled_cryptography_module():
     import pyaes
 
-    msg = "To make the program a *lot* faster, please install cryptography module: "
+    msg = "为了大幅提升程序运行速度，请安装 cryptography 模块: "
     msg += "pip install cryptography\n"
     print(msg, flush=True, file=sys.stderr)
 
@@ -1249,7 +1249,7 @@ async def handle_handshake(reader, writer):
         ip = peer[0] if peer else "unknown ip"
         peer = await handle_proxy_protocol(reader, peer)
         if not peer:
-            print_err("Client from %s sent bad proxy protocol headers" % ip)
+            print_err("来自 %s 的客户端发送了错误的代理协议头" % ip)
             await handle_bad_client(reader, writer, None)
             return False
 
@@ -1356,13 +1356,13 @@ async def do_direct_handshake(proto_tag, dc_idx, dec_key_and_iv=None):
     try:
         reader_tgt, writer_tgt = await tg_connection_pool.get_connection(dc, TG_DATACENTER_PORT)
     except ConnectionRefusedError as E:
-        print_err("Got connection refused while trying to connect to", dc, TG_DATACENTER_PORT)
+        print_err("连接被拒绝，无法连接到", dc, TG_DATACENTER_PORT)
         return False
     except ConnectionAbortedError as E:
-        print_err("The Telegram server connection is bad: %d (%s %s) %s" % (dc_idx, addr, port, E))
+        print_err("Telegram 服务器连接异常: %d (%s %s) %s" % (dc_idx, addr, port, E))
         return False
     except (OSError, asyncio.TimeoutError) as E:
-        print_err("Unable to connect to", dc, TG_DATACENTER_PORT)
+        print_err("无法连接到", dc, TG_DATACENTER_PORT)
         return False
 
     while True:
@@ -1550,13 +1550,13 @@ async def do_middleproxy_handshake(proto_tag, dc_idx, cl_ip, cl_port):
         ret = await tg_connection_pool.get_connection(addr, port, middleproxy_handshake)
         reader_tgt, writer_tgt, my_ip, my_port = ret
     except ConnectionRefusedError as E:
-        print_err("The Telegram server %d (%s %s) is refusing connections" % (dc_idx, addr, port))
+        print_err("Telegram 服务器 %d (%s %s) 拒绝连接" % (dc_idx, addr, port))
         return False
     except ConnectionAbortedError as E:
-        print_err("The Telegram server connection is bad: %d (%s %s) %s" % (dc_idx, addr, port, E))
+        print_err("Telegram 服务器连接异常: %d (%s %s) %s" % (dc_idx, addr, port, E))
         return False
     except (OSError, asyncio.TimeoutError) as E:
-        print_err("Unable to connect to the Telegram server %d (%s %s)" % (dc_idx, addr, port))
+        print_err("无法连接到 Telegram 服务器 %d (%s %s)" % (dc_idx, addr, port))
         return False
 
     writer_tgt = ProxyReqStreamWriter(writer_tgt, cl_ip, cl_port, my_ip, my_port, proto_tag)
@@ -1826,31 +1826,31 @@ async def stats_printer():
     while True:
         await asyncio.sleep(config.STATS_PRINT_PERIOD)
 
-        print("Stats for", time.strftime("%d.%m.%Y %H:%M:%S"))
+        print("统计信息 -", time.strftime("%d.%m.%Y %H:%M:%S"))
         for user, stat in user_stats.items():
-            print("%s: %d connects (%d current), %.2f MB, %d msgs" % (
+            print("%s: %d 次连接 (%d 当前), %.2f MB, %d 消息" % (
                 user, stat["connects"], stat["curr_connects"],
                 (stat["octets_from_client"] + stat["octets_to_client"]) / 1000000,
                 stat["msgs_from_client"] + stat["msgs_to_client"]))
         print(flush=True)
 
         if last_client_ips:
-            print("New IPs:")
+            print("新 IP 地址:")
             for ip in last_client_ips:
                 print(ip)
             print(flush=True)
             last_client_ips.clear()
 
         if last_clients_with_time_skew:
-            print("Clients with time skew (possible replay-attackers):")
+            print("时间偏差客户端 (可能的重放攻击者):")
             for ip, skew_minutes in last_clients_with_time_skew.items():
-                print("%s, clocks were %d minutes behind" % (ip, skew_minutes))
+                print("%s, 时钟落后 %d 分钟" % (ip, skew_minutes))
             print(flush=True)
             last_clients_with_time_skew.clear()
         if last_clients_with_same_handshake:
-            print("Clients with duplicate handshake (likely replay-attackers):")
+            print("重复握手客户端 (可能的重放攻击者):")
             for ip, times in last_clients_with_same_handshake.items():
-                print("%s, %d times" % (ip, times))
+                print("%s, %d 次" % (ip, times))
             print(flush=True)
             last_clients_with_same_handshake.clear()
 
@@ -1960,19 +1960,19 @@ async def get_mask_host_cert_len():
                     print_err(msg)
                 elif len(cert) != fake_cert_len:
                     fake_cert_len = len(cert)
-                    print_err("Got cert from the MASK_HOST %s, its length is %d" %
+                    print_err("从 MASK_HOST %s 获取证书，长度为 %d" %
                               (config.MASK_HOST, fake_cert_len))
             else:
-                print_err("The MASK_HOST %s is not TLS 1.3 host, this is not recommended" %
+                print_err("MASK_HOST %s 不是 TLS 1.3 主机，不建议使用" %
                           config.MASK_HOST)
         except ConnectionRefusedError:
-            print_err("The MASK_HOST %s is refusing connections, this is not recommended" %
+            print_err("MASK_HOST %s 拒绝连接，不建议使用" %
                       config.MASK_HOST)
         except (TimeoutError, asyncio.TimeoutError):
-            print_err("Got timeout while getting TLS handshake from MASK_HOST %s" %
+            print_err("从 MASK_HOST %s 获取 TLS 握手时超时" %
                       config.MASK_HOST)
         except Exception as E:
-            print_err("Failed to connect to MASK_HOST %s: %s" % (
+            print_err("连接到 MASK_HOST %s 失败: %s" % (
                       config.MASK_HOST, E))
 
         await asyncio.sleep(config.GET_CERT_LEN_PERIOD)
@@ -1998,19 +1998,19 @@ async def get_srv_time():
                 now_time = datetime.datetime.utcnow()
                 is_time_skewed = (now_time-srv_time).total_seconds() > MAX_TIME_SKEW
                 if is_time_skewed and config.USE_MIDDLE_PROXY and not disable_middle_proxy:
-                    print_err("Time skew detected, please set the clock")
-                    print_err("Server time:", srv_time, "your time:", now_time)
-                    print_err("Disabling advertising to continue serving")
-                    print_err("Putting down the shields against replay attacks")
+                    print_err("检测到时间偏差，请校准时钟")
+                    print_err("服务器时间:", srv_time, "本地时间:", now_time)
+                    print_err("禁用广告以继续服务")
+                    print_err("降低重放攻击防护")
 
                     disable_middle_proxy = True
                     want_to_reenable_advertising = True
                 elif not is_time_skewed and want_to_reenable_advertising:
-                    print_err("Time is ok, reenabling advertising")
+                    print_err("时间正常，重新启用广告")
                     disable_middle_proxy = False
                     want_to_reenable_advertising = False
         except Exception as E:
-            print_err("Error getting server time", E)
+            print_err("获取服务器时间出错", E)
 
         await asyncio.sleep(config.GET_TIME_PERIOD)
 
@@ -2057,7 +2057,7 @@ async def update_middle_proxy_info():
                 raise Exception("no proxy data")
             TG_MIDDLE_PROXIES_V4 = v4_proxies
         except Exception as E:
-            print_err("Error updating middle proxy list:", E)
+            print_err("更新中间代理列表出错:", E)
 
         try:
             v6_proxies = await get_new_proxies(PROXY_INFO_ADDR_V6)
@@ -2065,7 +2065,7 @@ async def update_middle_proxy_info():
                 raise Exception("no proxy data (ipv6)")
             TG_MIDDLE_PROXIES_V6 = v6_proxies
         except Exception as E:
-            print_err("Error updating middle proxy list for IPv6:", E)
+            print_err("更新 IPv6 中间代理列表出错:", E)
 
         try:
             headers, secret = await make_https_req(PROXY_SECRET_ADDR)
@@ -2073,9 +2073,9 @@ async def update_middle_proxy_info():
                 raise Exception("no secret")
             if secret != PROXY_SECRET:
                 PROXY_SECRET = secret
-                print_err("Middle proxy secret updated")
+                print_err("中间代理密钥已更新")
         except Exception as E:
-            print_err("Error updating middle proxy secret, using old", E)
+            print_err("更新中间代理密钥出错，使用旧密钥", E)
 
         await asyncio.sleep(config.PROXY_INFO_UPDATE_PERIOD)
 
@@ -2108,11 +2108,11 @@ def init_ip_info():
         my_ip_info["ipv6"] = None
 
     if my_ip_info["ipv6"] and (config.PREFER_IPV6 or not my_ip_info["ipv4"]):
-        print_err("IPv6 found, using it for external communication")
+        print_err("发现 IPv6，用于外部通信")
 
     if config.USE_MIDDLE_PROXY:
         if not my_ip_info["ipv4"] and not my_ip_info["ipv6"]:
-            print_err("Failed to determine your ip, advertising disabled")
+            print_err("无法确定您的 IP 地址，广告已禁用")
             disable_middle_proxy = True
 
 
@@ -2179,7 +2179,7 @@ def print_tg_info():
         print_default_warning = True
 
     if print_default_warning:
-        print_err("Warning: one or more default settings detected")
+        print_err("警告：检测到一个或多个默认设置")
 
 
 def setup_files_limit():
@@ -2188,7 +2188,7 @@ def setup_files_limit():
         soft_fd_limit, hard_fd_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
         resource.setrlimit(resource.RLIMIT_NOFILE, (hard_fd_limit, hard_fd_limit))
     except (ValueError, OSError):
-        print("Failed to increase the limit of opened files", flush=True, file=sys.stderr)
+        print("增加打开文件数限制失败", flush=True, file=sys.stderr)
     except ImportError:
         pass
 
@@ -2211,7 +2211,7 @@ def setup_signals():
             init_config()
             ensure_users_in_user_stats()
             apply_upstream_proxy_settings()
-            print("Config reloaded", flush=True, file=sys.stderr)
+            print("配置已重新加载", flush=True, file=sys.stderr)
             print_tg_info()
 
         signal.signal(signal.SIGUSR2, reload_signal)
@@ -2224,7 +2224,7 @@ def try_setup_uvloop():
     try:
         import uvloop
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-        print_err("Found uvloop, using it for optimal performance")
+        print_err("发现uvloop，使用它以获得最佳性能")
     except ImportError:
         pass
 
