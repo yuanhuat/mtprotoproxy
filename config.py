@@ -44,10 +44,10 @@ USER_MAX_TCP_CONNS = {
 }
 
 # 性能优化相关设置（保障连接稳定性与资源利用率）
-CLIENT_KEEPALIVE = 20*60        # 客户端连接保活时间：20分钟（超过该时间无数据传输则自动断开连接）
-CLIENT_HANDSHAKE_TIMEOUT = 30   # 客户端握手超时时间：30秒（客户端发起连接后，若30秒内未完成握手则断开）
-CLIENT_ACK_TIMEOUT = 10*60      # 客户端ACK响应超时时间：10分钟（等待客户端确认消息的最长时间）
-TG_CONNECT_TIMEOUT = 15         # 代理到Telegram服务器的连接超时时间：15秒（连接Telegram服务器超时则重试或拒绝客户端请求）
+CLIENT_KEEPALIVE = 60           # 客户端连接保活时间：60秒（大幅缩短，加速无效连接回收）
+CLIENT_HANDSHAKE_TIMEOUT = 30   # 客户端握手超时时间：30秒（保持合理值）
+CLIENT_ACK_TIMEOUT = 120        # 客户端ACK响应超时时间：120秒（从10分钟缩短到2分钟）
+TG_CONNECT_TIMEOUT = 15         # 代理到Telegram服务器的连接超时时间：15秒（保持合理值）
 
 # 性能监控和日志配置
 ENABLE_STATS = True             # 是否启用连接统计功能（启用后会记录用户连接数、流量等数据）
