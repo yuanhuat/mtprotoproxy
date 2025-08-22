@@ -35,7 +35,7 @@ TO_TG_BUFSIZE = (8388608, 50, 20971520)   # (8MB, 50 users, 20MB)
 # User TCP connection limits - set reasonable limits to prevent abuse
 # Format: {"username": max_connections}
 USER_MAX_TCP_CONNS = {
-    "tg": 100,  # Allow up to 100 concurrent connections per user
+    "tg": 500,  # Allow up to 100 concurrent connections per user
 }
 
 # Performance optimization settings
