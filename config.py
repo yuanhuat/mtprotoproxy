@@ -29,8 +29,8 @@ MODES = {
 # Buffer size optimization for 8GB RAM server
 # Adaptive buffer configuration: (low_buffer, user_threshold, high_buffer)
 # When concurrent users < threshold, use high buffer; otherwise use low buffer
-TO_CLT_BUFSIZE = (3145728, 50, 5242880)  # (3MB, 50 users, 5MB)
-TO_TG_BUFSIZE = (3145728, 50, 5242880)   # (3MB, 50 users, 5MB)
+TO_CLT_BUFSIZE = (8388608, 50, 20971520)  # (8MB, 50 users, 20MB)
+TO_TG_BUFSIZE = (8388608, 50, 20971520)   # (8MB, 50 users, 20MB)
 
 # User TCP connection limits - set reasonable limits to prevent abuse
 # Format: {"username": max_connections}
